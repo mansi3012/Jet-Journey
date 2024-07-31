@@ -1,0 +1,73 @@
+package JetJourney;
+
+import java.io.File;
+import java.util.ArrayList;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+public class CheapFlightsFileParser {
+
+    public static ArrayList<FlightInfo> parseCheapFlightsFiles(String origin, String destination, int month,
+            int year, int day, String folderPath) {
+
+        String monthString = "" + month;
+        if (month < 10) {
+            monthString = "0" + month;
+        }
+
+        String dayString = null;
+
+        if (day < 10) {
+            dayString = "0" + day;
+        } else {
+            dayString = "" + day;
+        }
+
+        ArrayList<FlightInfo> bestCheapflightsFlights = new ArrayList<FlightInfo>();
+        try {
+            String filePath = folderPath + "/" + origin.toLowerCase() + "_to_" + destination.toLowerCase() + "_"
+                    + dayString
+                    + "_" + monthString + "_" + year + "_cheapflights" + ".html";
+
+            File input = new File(filePath.toLowerCase());
+
+            Document doc = Jsoup.parse(input, "UTF-8");
+
+            Elements results = doc.getElementsByClass("nrc6-wrapper");
+            for (int i = 0; i < results.size(); i++) {
+                Element result = results.get(i);
+
+                String departureTime = result.getElementsByClass("vmXl-mod-variant-large").text();
+                String originShort = result.getElementsByClass("c_cgF.c_cgF-mod-variant-full-airport-wide").text();
+
+                String numStops = result.getElementsByClass("JWEO-stops-text").text();
+
+                String airlineName = result.getElementsByClass("J0g6-operator-text").text();
+                String flightDuration = result.getElementsByClass("vmXl-mod-variant-default").get(1).text();
+                String price = result.getElementsByClass("f8F1-price-text").text().split(" ")[1].replace(",", "");
+
+                // System.out.println("Timing: " + departureTime);
+                // System.out.println("Price: " + Integer.parseInt(price));
+                // System.out.println("Airlines: " + airlineName);
+                // System.out.println("Stops: " + numStops);
+                // System.out.println("Duration: " + flightDuration);
+
+                FlightInfo currentFlight = new FlightInfo(departureTime, flightDuration, numStops,
+                        airlineName, "CheapFlights", Integer.parseInt(price));
+
+                bestCheapflightsFlights.add(currentFlight);
+            }
+        } catch (Exception e) {
+            // Handle the exception
+            System.out.println("Error parsing Cheapflights html file: " + e.getMessage());
+            // e.printStackTrace();
+            System.out.println("\n-------------------------------------------------------");
+            System.out.println("There must be no flights on Cheapflights.com for this Route or Date!");
+        }
+
+        return FlightSorter.sortFlightsByPrice(bestCheapflightsFlights);
+    }
+}
